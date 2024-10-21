@@ -1,30 +1,34 @@
 # main.py
 from utils.data_loader import load_data
-from utils.config import CONFIG
+from utils.config import CONFIG, REQUIRED_FEATURES
 from training.data_preprocessing import load_and_preprocess_data, create_sequences
 from training.model_training import create_lstm_autoencoder, train_model
 from training.model_evaluation import evaluate_model
 import numpy as np
 
+
+
 def main():
     # Load and preprocess data
     data_1200 = load_data(CONFIG['data_dir'], 1200)
-    data_600 = load_data(CONFIG['data_dir'], 600)
+    #data_600 = load_data(CONFIG['data_dir'], 600)
 
-    for feature in CONFIG['features']:
-        print(f"Processing feature: {feature}")
+    for model_type in CONFIG['model_type']:
         
-        # Process data for RPM 1200
-        normalized_data_1200, scaler_1200 = load_and_preprocess_data(data_1200, feature)
+        # RPM 1200 데이터를 모델에 맞게 전처리
+        # 1. 필요 칼럼 선택
+        # 2. 스케일링
+        # 3. 시퀀스 생성
+        normalized_data_1200, scaler_1200 = load_and_preprocess_data(data_1200, REQUIRED_FEATURES[model_type])
         sequences_1200 = create_sequences(normalized_data_1200, CONFIG['sequence_length'])
 
         # Process data for RPM 600
-        normalized_data_600, scaler_600 = load_and_preprocess_data(data_600, feature)
-        sequences_600 = create_sequences(normalized_data_600, CONFIG['sequence_length'])
+        #normalized_data_600, scaler_600 = load_and_preprocess_data(data_600, feature)
+        #sequences_600 = create_sequences(normalized_data_600, CONFIG['sequence_length'])
 
         # Combine data
-        all_sequences = np.concatenate([sequences_1200, sequences_600], axis=0)
-
+        #all_sequences = np.concatenate([sequences_1200, sequences_600], axis=0)
+        all_sequences = sequences_1200
         # Split into train and test
         train_size = int(len(all_sequences) * CONFIG['train_test_split'])
         train_data = all_sequences[:train_size]
