@@ -1,0 +1,11 @@
+# models
+*.h5
+*.pkl
+
+# datas
+*.csv
+
+# logs and caches
+*.log
+*.pyc
+__pycache__/
