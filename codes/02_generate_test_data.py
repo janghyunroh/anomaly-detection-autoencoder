@@ -12,7 +12,7 @@ if project_root not in sys.path:
 from utils.config import CONFIG, REQUIRED_FEATURES, PER_MODEL
 
 def inject_anomalies_to_session(df, feature_columns, anomaly_ratio=0.1, 
-                              min_anomaly_length=5, max_anomaly_length=20):
+                              min_anomaly_length=60, max_anomaly_length=80):
     """
     더 현실적인 이상치 패턴을 주입하는 함수
     
@@ -26,6 +26,7 @@ def inject_anomalies_to_session(df, feature_columns, anomaly_ratio=0.1,
     anomalous_df = df.copy()
     data_length = len(df)
     anomalous_df['label'] = 0
+    anomalous_df['type'] = 'normal'
     
     # 전체 이상치 길이 계산
     total_anomaly_points = int(data_length * anomaly_ratio)
@@ -39,7 +40,7 @@ def inject_anomalies_to_session(df, feature_columns, anomaly_ratio=0.1,
         anomaly_length = np.random.randint(min_anomaly_length, max_anomaly_length)
         
         # 이상치 패턴 선택
-        pattern = np.random.choice(['spike', 'trend', 'zero', 'noise'])
+        pattern = np.random.choice(['spike', 'trend', 'zero']) # noise 유형은 제거
         
         # 선택된 특징들에 대해 이상치 주입
         if isinstance(feature_columns, list):
@@ -59,7 +60,7 @@ def inject_anomalies_to_session(df, feature_columns, anomaly_ratio=0.1,
                 # 점진적 증가 또는 감소 트렌드
                 trend_factor = np.random.uniform(0.5, 2.0)
                 trend = np.linspace(1, trend_factor, anomaly_length)
-                anomalous_values = original_values * trend
+                anomalous_values = np.round(original_values * trend, 6)  # 소수점 6자리까지 반올림
                 
             elif pattern == 'zero':
                 # 값이 0으로 떨어지는 현상
@@ -75,6 +76,7 @@ def inject_anomalies_to_session(df, feature_columns, anomaly_ratio=0.1,
             
         # 레이블 설정
         anomalous_df.loc[start_idx:start_idx+anomaly_length-1, 'label'] = 1
+        anomalous_df.loc[start_idx:start_idx+anomaly_length-1, 'type'] = pattern
         
         current_anomaly_points += anomaly_length
     
@@ -128,20 +130,23 @@ def inject_multi_feature_anomalies(df, feature_groups, anomaly_ratio=0.1):
 def process_rpm_data(rpm_config, model_type):
     """
     특정 RPM에 대한 테스트 데이터 처리
+    processed_test_data_dir에서 노이즈 제거한 테스트용 데이터를 불러와
+    test_data_dir에 저장
     """
+    processed_test_data_dir = rpm_config['processed_test_data_dir']
     test_dir = rpm_config['test_data_dir']
-    processed_dir = rpm_config['processed_data_dir']
+    
     
     # 처리된 데이터 저장을 위한 디렉토리 생성
-    os.makedirs(processed_dir, exist_ok=True)
+    os.makedirs(test_dir, exist_ok=True)
     
     feature_columns = REQUIRED_FEATURES[model_type]
     
-    # 테스트 디렉토리의 모든 CSV 파일 처리
-    for file_name in os.listdir(test_dir):
+    # 전처리된 디렉토리의 모든 CSV 파일 처리
+    for file_name in os.listdir(processed_test_data_dir):
         if file_name.endswith('.csv'):
-            # 원본 데이터 로드
-            file_path = os.path.join(test_dir, file_name)
+            # 전처리된 데이터 로드
+            file_path = os.path.join(processed_test_data_dir, file_name)
             df = pd.read_csv(file_path)
             
             # 이상치 주입 및 레이블링
@@ -154,14 +159,14 @@ def process_rpm_data(rpm_config, model_type):
             )
             
             # 처리된 데이터 저장
-            output_path = os.path.join(processed_dir, f'anomalous_{model_type}_{file_name}')
+            output_path = os.path.join(test_dir, f'anomalous_{model_type}_{file_name}')
             anomalous_df.to_csv(output_path, index=False)
             
             print(f"Processed {file_name} for {model_type} model")
 
 def main():
     # RPM 1200과 600에 대해 각각 처리
-    for rpm_type in ['rpm_1200', 'rpm_600']:
+    for rpm_type in ['rpm_600']:
         rpm_config = CONFIG[rpm_type]
         print(f"\nProcessing {rpm_type}:")
         

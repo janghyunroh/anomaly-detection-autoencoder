@@ -3,12 +3,32 @@
 LSTM-AutoEncoder를 이용해 여러 스트리밍 데이터에 대한 이상치를 탐지하여 서버사이드로 알림 발송 여부를 전하게 됩니다. 
 
 ---
+## 0. 프로젝트 아웃라인
+<p align="center">
+   <img src="/images/356122226-0eeccff5-ae45-423b-a506-ed861de69a85.png">
+</p>
+<p align="center">
+   <img src="/images/모델개발플로우차트(2).jpg">
+</p>
+
+
+---
+
 ## 1. :mag_right:이상치 탐지란?
 
 ### 1.1. 이상치 탐지의 정의
-이상치 탐지(Anomaly Detection)는 데이터 세트에서 예상되는 정상적인 패턴과 다른 특이한 패턴이나 항목을 식별하는 프로세스입니다. 산업 현장에서는 이러한 이상치 탐지를 통해 장비의 고장을 예측하거나 품질 이상을 조기에 발견할 수 있습니다.
+이상치 탐지(Anomaly Detection)는 데이터셋에서 예상되는 정상적인 패턴과 다른 특이한 패턴이나 항목을 식별하는 프로세스입니다. 산업 현장에서는 이러한 이상치 탐지를 통해 장비의 고장을 예측하거나 품질 이상을 조기에 발견할 수 있습니다.
 
 ### 1.2. 이상치의 특성과 이상치 탐지가 어려운 이유
+
+<p align="center">
+   <img src="/images/supervised_outlier_detection.png">
+</p>
+
+<p align="center">
+   "행복한 가정은 모두 비슷하게 닮았지만, 불행한 가정은 저마다의 이유로 불행하다." - 레프 톨스토이, [안나 카레니나]
+</p>
+
 이상치 탐지에는 다음과 같은 어려움이 있습니다:
 
 - **정의의 어려움**: 어떤 종류의 데이터를 '이상치'라고 판단할 것인지 어렵습니다. 
@@ -17,6 +37,8 @@ LSTM-AutoEncoder를 이용해 여러 스트리밍 데이터에 대한 이상치�
 - **동적 특성**: 정상의 기준이 시간에 따라 변할 수 있습니다.
 - **노이즈 구분**: 실제 이상과 일시적인 노이즈를 구분하기 어렵습니다.
 
+이같은 어려움들은 대부분 "이상치"라는 개념의 정의에서 발생합니다. '정상적이지 않은 것'은 모두 이상치로 분류되기 때문에, 세상의 모든 발생 가능한 이상치를 데이터로 표현하는 것은 불가능하죠. 
+그렇기 때문에 지도 학습 기반의 이상치 탐지는 아주 한정적인 경우에만 사용이 가능합니다. 
 ### 1.3. 이상치 탐지 기법의 종류
 1. **통계적 방법**
    - 평균, 표준편차 기반 방법
@@ -37,8 +59,9 @@ LSTM-AutoEncoder를 이용해 여러 스트리밍 데이터에 대한 이상치�
 
 ### 2.1. AutoEncoder란?
 
-![title](https://pebpung.github.io/assets/img/2021-09-11/AutoEncoder-1/Untitled.png)   
-
+<p align="center">
+   <img src="https://pebpung.github.io/assets/img/2021-09-11/AutoEncoder-1/Untitled.png">
+</p>
 
 AutoEncoder는 비지도 학습 신경망으로, 입력 데이터를 압축(인코딩)했다가 다시 복원(디코딩)하는 과정을 통해 데이터의 중요 특징을 학습합니다. 
 
@@ -74,8 +97,8 @@ AutoEncoder는 비지도 학습 신경망으로, 입력 데이터를 압축(인�
 AutoEncoder는 이미지나 표와 같은 고정된 크기의 데이터를 처리하는 데 적합하지만, 시간에 따라 변화하는 시퀀스 데이터(예: 시계열 데이터, 텍스트, 음성)를 처리하는 데는 한계가 있습니다.
 
 시퀀스 데이터의 특징:
-데이터 포인트 간의 순서와 시간적 의존성이 중요합니다.
-이전 상태가 현재 상태에 영향을 미칩니다.
+1. 데이터 포인트 간의 **순서**와 **시간적 의존성**이 중요합니다.
+2. **이전 상태**가 **현재 상태**에 영향을 미칩니다.
 
 LSTM-AutoEncoder는 시계열 데이터의 특성을 고려한 구조를 가집니다:
 
@@ -83,7 +106,10 @@ LSTM-AutoEncoder는 시계열 데이터의 특성을 고려한 구조를 가집�
 Input Sequence → LSTM Encoder → Latent Vector → LSTM Decoder → Output Sequence
 ```
 
-![title](images/LSTM-AutoEncoder.png)
+<p align="center">
+   <img src="images/LSTM-AutoEncoder.png">
+</p>
+
 
 - **LSTM 인코더(Encoder)**:
 
@@ -200,35 +226,84 @@ Output shape: (batch_size, sequence_length, n_features)
 
 ```
 anomaly_detection_project/
-├── codes                     # 코드 모음
-│   ├── models/                  # 모델 정의 함수
-│   ├── utils/                   # 설정값 및 데이터 로드 함수 
-│   ├── training/                # train 함수 정의
-│   ├── tests/                   # test 함수 및 test 데이터 구축 함수 정의
-│   ├── visualization/           # 시각화 코드 정의
-├── datas/                    # 데이터 저장소
-│   ├── raw/                     # 원본 데이터
-│   │   ├── rpm_600/                # 600RPM 데이터
-│   │   │   ├ train/                   # train 데이터
-│   │   │   └ test/                    # test 데이터
-│   │   └── rpm_1200/               # 1200RPM 데이터
-│   │       ├ train/                   # train 데이터
-│   │       └ test/                    # test 데이터
-│   └── processed/               # 전처리된 데이터
-├── images/                   # 마크다운용 이미지
-├── models/                   # 모델 파일 저장 디렉토리
-├── 개발과정정리/                # 개발 과정에서 따로 조사하거나 공부한 내용 정리
-├── .gitignore                
+├── codes                              # 코드 모음
+│   ├── models/                        # 모델 정의 함수(현재 미사용 중이며 모든 모델은 training/model_training.py의 모델 생성 코드를 이용해 생성함)
+│   │   ├── multi_feature_model.py        # 종합 특성 모델
+│   │   ├── temperature_model.py          # 온도 모델
+│   │   ├── vibration_model.py            # 진동 모델
+│   │   └── voltage_model.py              # 전압 모델
+│   ├── utils/                         # 설정값 및 데이터 로드 함수 
+│   │   ├── config.py                     # 설정 파일
+│   │   ├── data_loader.py                # 데이터 로더
+│   │   └── logger.py                     # 로그 출력 함수
+│   ├── training/                      # train 함수 정의
+│   │   ├── data_preprocessing.py         # 학습 전 로드한 데이터를 스케일링 및 시퀀스 생성하는 함수
+│   │   ├── learning_monitor.py           # 학습 시 epoch 별 재구성 오차 그래프를 이미지로 저장하여 적절한 epoch 수를 찾을 수 있도록 하는 모티너링 코드
+│   │   ├── model_analysis.py             # (미사용)
+│   │   ├── model_evaluation.py           # (미사용)
+│   │   └── model_training.py             # 모델 학습 및 학습 과정 모니터링 함수(learning_monitor의 함수를 콜백함수로 사용)
+
+------------------------- 실제 데이터 분석, 모델 학습 및 테스트 시 실행되는 파일들 -------------------------
+
+│   ├── 01_clean_data.py               << 원본 test 데이터에 이상치 주입하여 테스트 데이터셋 생성하는 코드
+│   ├── 02_generate_test_data.py       << 원본 test 데이터에 이상치 주입하여 테스트 데이터셋 생성하는 코드
+│   ├── 03_create_and_train_model.py   << 모델 학습 코드                
+│   ├── 04_evaluate_model.py           << 모델 테스트 및 평가 코드
+│   ├── 05_visualize_data.ipynb        << 원본, 노이즈 제거, 이상치 주입 데이터를 분석 및 시각화하는 코드
+│   ├── 06_inference_test.ipynb        << 모델의 추론 과정과 출력의 형태를 확인하는 코드
+│   └── 07_data_analysis.py            << (미사용)
+
+-----------------------------------------------------------------------------------------------------------
+
+├── datas/                             # 데이터 저장소
+│   ├── raw/                              # 원본 데이터
+│   │   ├── rpm_600/                         # 600RPM 데이터
+│   │   │   ├ train/                            # train 데이터
+│   │   │   └ test/                             # test 데이터
+│   │   └── rpm_1200/                        # 1200RPM 데이터
+│   │       ├ train/                            # train 데이터
+│   │       └ test/                             # test 데이터
+│   ├── processed/                        # 노이즈 제거된 데이터
+│   │   ├── rpm_600/                         # 600RPM 데이터
+│   │   │   ├ train/                            # train 데이터
+│   │   │   └ test/                             # test 데이터
+│   │   └── rpm_1200/                        # 1200RPM 데이터
+│   │       ├ train/                            # train 데이터
+│   │       └ test/                             # test 데이터
+│   └── anomalous/                        # 이상치 주입된 데이터
+│       ├── rpm_600/                         # 600RPM 데이터
+│       │   ├ train/                            # train 데이터
+│       │   └ test/                             # test 데이터
+│       └── rpm_1200/                        # 1200RPM 데이터
+│           ├ train/                            # train 데이터
+│           └ test/                             # test 데이터
+├── images/                            # 마크다운용 이미지
+├── logs/                              # 모델 학습 로그 저장 경로
+│   ├── rpm_600/                             # 600 RPM 전용 모델 학습 로그 
+│   │   ├── training_600_rpm.log                # rpm 모델 학습 로그 
+│   │   ├── training_600_temp.log               # 온도 모델 학습 로그 
+│   │   ├── training_600_vib.log                # 진동 모델 학습 로그 
+│   │   ├── training_600_volt.log               # 전압 모델 학습 로그 
+│   ├── rpm_1200/                            # 1200 RPM 전용 모델 학습 로그 
+│   │   ├── training_1200_rpm.log               # rpm 모델 학습 로그 
+│   │   ├── training_1200_temp.log              # 온도 모델 학습 로그 
+│   │   ├── training_1200_vib.log               # 진동 모델 학습 로그
+│   │   └── training_1200_volt.log              # 전압 모델 학습 로그
+├── models/                            # 모델 파일 저장 디렉토리(모델(.h5)및 스케일러(.pkl) 파일 저장)
+│   ├── rpm_600/                             # 600 RPM 전용 모델 및 스케일러 파일
+│   └── rpm_1200/                            # 1200 RPM 전용 모델 및 스케일러 파일 
+├── results/                           # 모델 테스트 결과 저장 경로
+│   ├── graphs/                              # learning_monitor.py로 생성된 그래프 파일
+│   ├── rpm_600/                             # 600 RPM 전용 모델 테스트 결과 
+│   └── rpm_1200/                            # 1200 RPM 전용 모델 테스트 결과 
+├── 개발과정정리/                      # 개발 과정에서 따로 조사하거나 공부한 내용 정리
+├── .gitignore                   
 ├── LICENSE            
-├── README.md           
+├── README.md        
+├── 사용법.md           
 └── requirements.txt               
 ```
-
-
 ---
-
-
-
 
 ## 6. :twisted_rightwards_arrows:프로젝트 진행에 따른 데이터의 흐름
 

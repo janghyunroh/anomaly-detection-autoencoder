@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, LSTM, Dense, RepeatVector
 from utils.config import PER_MODEL
+from training.learning_monitor import ReconstructionErrorCallback
 
 def create_lstm_autoencoder(seq_length, model_type):
 
@@ -44,6 +45,7 @@ def train_model(model, train_data, epochs=50, batch_size=32, validation_split=0.
         - 'loss': 각 epoch의 학습 손실값
         - 'val_loss': 각 epoch의 검증 손실값
     """
+    recon_error_callback = ReconstructionErrorCallback()
     
     history = model.fit(
         x=train_data,           # 입력 데이터
@@ -52,7 +54,8 @@ def train_model(model, train_data, epochs=50, batch_size=32, validation_split=0.
         batch_size=batch_size,  # 한 번에 처리할 데이터 개수
         validation_split=validation_split,  # 검증 데이터 비율
         shuffle=True,           # 매 epoch마다 데이터 섞기
-        verbose=1              # 학습 진행 상황 출력 (1: 진행바 표시)
+        verbose=1,              # 학습 진행 상황 출력 (1: 진행바 표시)
+        callbacks = [recon_error_callback]
     )
     
     return history
