@@ -1,0 +1,9 @@
+{
+    "timestamp": "1631054975",
+    "sensor_data": {
+      "temperature": 23.5,
+      "humidity": 40,
+      "acceleration": [0.1, 0.2, 9.81]
+    }
+}
+  

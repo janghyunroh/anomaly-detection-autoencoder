@@ -71,6 +71,6 @@ def visualize_anomaly_data(rpm_type='rpm_1200', model_type='vibration'):
                 print(f"이상치 포인트: {len(df[df['label'] == 1])}")
 
 # 사용 예시
-visualize_anomaly_data('rpm_1200', 'vibration')
+visualize_anomaly_data('rpm_600', 'vibration')
 # visualize_anomaly_data('rpm_1200', 'voltage')
 # visualize_anomaly_data('rpm_1200', 'temperature')

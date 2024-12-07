@@ -101,5 +101,5 @@ def process_vibration_data(rpm_type='rpm_1200'):
                 print(f"정제된 데이터 저장됨: {processed_file_path}")
 
 # 실행
-process_vibration_data('rpm_1200')
+#process_vibration_data('rpm_1200')
 process_vibration_data('rpm_600')

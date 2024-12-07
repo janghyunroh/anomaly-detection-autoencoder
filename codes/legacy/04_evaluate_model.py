@@ -28,6 +28,13 @@ def prepare_test_data(df, feature_columns, seq_length, scaler):
     if isinstance(feature_columns, list):
         feature_data = df[feature_columns].values
         scaled_data = scaler.transform(feature_data)
+        
+        # 스케일링된 데이터 확인(로그)
+        print("Scaled RPM data stats:")
+        print("Min:", np.min(scaled_data))
+        print("Max:", np.max(scaled_data))
+        print("Mean:", np.mean(scaled_data))
+        print("Std:", np.std(scaled_data))
     else:
         feature_data = df[feature_columns].values.reshape(-1, 1)
         scaled_data = scaler.transform(feature_data)
@@ -80,12 +87,61 @@ def evaluate_point_wise_anomalies(model, sequences, sequence_indices, n_points, 
         threshold: 이상치 판단 임계값
         ensemble_method: 앙상블 방법 ('mean', 'median', 'majority_vote')
     """
+    # 레이블 0으로 초기화
     predicted_anomalies = np.zeros(n_points)
+    
+    # 예측 전 입력값 확인
+    print("\nInput sequences stats:")
+    print(f"Has NaN: {np.any(np.isnan(sequences))}")
+    print(f"Min: {np.min(sequences)}")
+    print(f"Max: {np.max(sequences)}")
 
     # 각 시퀀스의 재구성 오차 계산
     predictions = model.predict(sequences)
-    sequence_errors = np.mean(np.power(sequences - predictions, 2), axis=2)  # shape: (n_sequences, seq_length)
+    
+    # 디버깅을 위한 출력 추가
+    print("Sequences shape:", sequences.shape)
+    print("Predictions shape:", predictions.shape)
+    print("Sample reconstruction error stats:")
+    
+    # 오차 계산
+    diff = sequences - predictions
+    
+    print("Min diff:", np.min(diff))
+    print("Max diff:", np.max(diff))
+    print("Mean diff:", np.mean(diff))
+    print("Std diff:", np.std(diff))
+    
+    # 예측값 확인
+    print("\nPredictions stats:")
+    print(f"Has NaN: {np.any(np.isnan(predictions))}")
+    if not np.any(np.isnan(predictions)):
+        print(f"Min: {np.min(predictions)}")
+        print(f"Max: {np.max(predictions)}")
+    
+    # 예측값이 nan인 경우의 입력값 확인
+    if np.any(np.isnan(predictions)):
+        nan_indices = np.where(np.isnan(predictions))[0]
+        print("\nInput sequences that led to NaN predictions:")
+        print(sequences[nan_indices[0]])
+    
+    # MSE 사용
+    
+    # 재구성 오차 계산 방식 수정
+    
+    # overflow 방지를 위해 clip 사용
+    diff = np.clip(diff, -1e10, 1e10)
+    
+    # sequence_errors = np.mean(np.power(diff, 2), axis=2)  # shape: (n_sequences, seq_length)
+    sequence_errors = np.mean(np.abs(diff), axis=2)  # shape: (n_sequences, seq_length)
     # = 시퀀스 별 재구성 오차
+    
+    # 재구성 오차 통계 출력
+    print("Reconstruction error stats:")
+    print("Min error:", np.min(sequence_errors))
+    print("Max error:", np.max(sequence_errors))
+    print("Mean error:", np.mean(sequence_errors))
+    print("Std error:", np.std(sequence_errors))
 
 
     # 각 데이터 포인트별 재구성 오차를 저장할 리스트

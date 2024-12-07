@@ -12,6 +12,7 @@ CONFIG = {
         'train_data_dir': '../datas/processed/rpm_600/train',
         'models_dir': '../models/rpm_600',
         'sequence_length': 100,
+        'data_period_ms': 50,
         'train_test_split': 0.9,
         'anomaly_threshold': 0.1,
         'results_dir' : '../results/rpm_600',
@@ -30,6 +31,7 @@ CONFIG = {
         'train_data_dir': '../datas/processed/rpm_1200/train',
         'models_dir': '../models/rpm_1200',
         'sequence_length': 250,
+        'data_period_ms': 20,
         'train_test_split': 0.9,
         'anomaly_threshold': 0.1,
         'results_dir' : '../results/rpm_1200',
@@ -61,24 +63,33 @@ PER_MODEL = {
         'type': 'vibration',
         'required_feature_num': 3,
         'required_features' : ['accel_x','accel_y','accel_z'],
-        'layer_size' : 32,
+        'layer_size_1' : 64, 
+        'layer_size_2' : 32
     },
     'voltage' : {
         'type': 'voltage',
         'required_feature_num': 1,
         'required_features' : 'voltage',
-        'layer_size' : 32
+        'layer_size_1' : 64, 
+        'layer_size_2' : 32
     },
     'rpm' : {
         'type': 'rpm',
         'required_feature_num': 1,
         'required_features' : 'rpm',
-        'layer_size' : 32,
+        'layer_size_1' : 64, 
+        'layer_size_2' : 32
     },
     'temperature' : {
         'type': 'temperature',
         'required_feature_num': 1,
         'required_features' : 'temperature',
-        'layer_size' : 32,
+        'layer_size_1' : 64, 
+        'layer_size_2' : 32
     }
+}
+
+SERVER_CONFIG = {
+    'SERVER_IP' : '165.246.43.59',  # 서버 IP 주소
+    'SERVER_PORT' : 3000      # 서버 포트 번호
 }

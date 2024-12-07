@@ -8,19 +8,24 @@ from training.learning_monitor import ReconstructionErrorCallback
 def create_lstm_autoencoder(seq_length, model_type):
 
     n_features = PER_MODEL[model_type]['required_feature_num']
-    layer_size = PER_MODEL[model_type]['layer_size']
+    layer_size_1 = PER_MODEL[model_type]['layer_size_1']
+    layer_size_2 = PER_MODEL[model_type]['layer_size_2']
 
     inputs = Input(shape=(seq_length, n_features))
-    encoded = LSTM(layer_size, activation='relu')(inputs)
+    encoded = LSTM(layer_size_1, activation='relu', dropout=0.2, return_sequences=True)(inputs)
+    encoded = LSTM(layer_size_2, activation='relu', dropout=0.2)(encoded)
+    
     decoded = RepeatVector(seq_length)(encoded)
-    decoded = LSTM(layer_size, activation='relu', return_sequences=True)(decoded)
+    
+    decoded = LSTM(layer_size_2, activation='relu', dropout=0.2, return_sequences=True)(decoded)
+    decoded = LSTM(layer_size_1, activation='relu', dropout=0.2, return_sequences=True)(decoded)
     decoded = Dense(n_features)(decoded)
     
     autoencoder = Model(inputs, decoded)
-    autoencoder.compile(optimizer='adam', loss='mse')
+    autoencoder.compile(optimizer='adam', loss='mse', metrics=['mse'])
     return autoencoder
 
-def train_model(model, train_data, epochs=50, batch_size=32, validation_split=0.1):
+def train_model(model, train_data, epochs=50, batch_size=32, validation_split=0.1, recon_error_callback=None):
     """
     LSTM AutoEncoder 모델을 학습시키는 함수
     
@@ -45,7 +50,9 @@ def train_model(model, train_data, epochs=50, batch_size=32, validation_split=0.
         - 'loss': 각 epoch의 학습 손실값
         - 'val_loss': 각 epoch의 검증 손실값
     """
-    recon_error_callback = ReconstructionErrorCallback()
+    callbacks = []
+    if recon_error_callback is not None:
+        callbacks.append(recon_error_callback)
     
     history = model.fit(
         x=train_data,           # 입력 데이터
@@ -55,7 +62,7 @@ def train_model(model, train_data, epochs=50, batch_size=32, validation_split=0.
         validation_split=validation_split,  # 검증 데이터 비율
         shuffle=True,           # 매 epoch마다 데이터 섞기
         verbose=1,              # 학습 진행 상황 출력 (1: 진행바 표시)
-        callbacks = [recon_error_callback]
+        callbacks = callbacks   # 학습 모니터링을 위한 콜백함수
     )
     
     return history

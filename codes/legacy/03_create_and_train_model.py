@@ -12,6 +12,7 @@ from utils.data_loader import load_data
 from training.data_preprocessing import load_and_preprocess_data, create_sequences
 from training.model_training import create_lstm_autoencoder, train_model
 from joblib import dump, load
+from training.learning_monitor import ReconstructionErrorCallback
 
 # 리눅스 명령어 사용시 옵션 줄 수 있게 만드는 부분(중요X)
 def parse_arguments():
@@ -120,7 +121,7 @@ def main():
     # 학습 데이터들로부터 시퀀스들을 생성
     print("\nCreating sequences...")
     sequence_start = time.time()
-    sequences = create_sequences(normalized_data_list, CONFIG[rpm_config]['sequence_length'])
+    sequences = create_sequences(normalized_data_list, CONFIG[rpm_config]['sequence_length'], 20)
 
     sequence_time = time.time() - sequence_start
     print(f"Sequence Created in {format_time(sequence_time)}")
@@ -137,7 +138,10 @@ def main():
         sequences,
         epochs=CONFIG['training']['epochs'],
         batch_size=CONFIG['training']['batch_size'],
-        validation_split=CONFIG['training']['validation_split']
+        validation_split=CONFIG['training']['validation_split'],
+
+        # model_training.py의 train_model 함수 호출 부분
+        recon_error_callback = ReconstructionErrorCallback(model_type, rpm_config)
     )
 
     training_time = time.time() - training_start
