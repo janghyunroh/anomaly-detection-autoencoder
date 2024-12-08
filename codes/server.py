@@ -1,7 +1,7 @@
 import socket
 import struct
 import numpy as np
-import tensorflow as tf
+import torch 
 import joblib
 from collections import deque
 import json
@@ -9,10 +9,13 @@ from datetime import datetime
 import logging
 from utils.logger import setup_logger
 from utils.config import CONFIG
+from lstmae import LSTMAutoencoder
 
 # 서버 정보
 SERVER_IP = '165.246.43.59'  # 서버 IP 주소
 SERVER_PORT = 3000      # 서버 포트 번호
+RESULT_IP = '165.246.43.59'
+RESULT_PORT = 6000
 
 # 수신할 구조체 형식 정의 (C struct와 동일한 형식)
 STRUCT_FORMAT = 'iiQ6f'  # fac_id, dev_id, timestamp, 6개의 float: x_accel, y_accel, z_accel, rpm, temp, voltage
@@ -55,7 +58,7 @@ STRUCT_SIZE = struct.calcsize(STRUCT_FORMAT)  # 구조체 크기 계산
 #         print("Socket closed.")
 
 class RealTimeAnomalyDetector:
-    def __init__(self, model_path, scaler_path, rpm_type='rpm_600', sequence_length=100):
+    def __init__(self, model_path, scaler_path, rpm_type='rpm_600', sequence_length=30):
         """
         실시간 이상치 탐지 클라이언트 초기화
         
@@ -66,7 +69,19 @@ class RealTimeAnomalyDetector:
             sequence_length: 시퀀스 길이
         """
         # 모델과 스케일러 로드
-        self.model = tf.keras.models.load_model(model_path)
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        # 모델 구조 초기화
+        self.model = LSTMAutoencoder(
+            input_dim=3,          # X, Y, Z 축 데이터
+            hidden_dim=64,        # 히든 레이어 차원
+            seq_length=30,        # 시퀀스 길이
+            n_layers=2,           # LSTM 레이어 수
+            dropout=0.2
+        ).to(self.device)
+    
+        # 저장된 가중치 로드
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.eval()  # 평가 모드로 설정
         self.scaler = joblib.load(scaler_path)
         
         # 설정 로드
@@ -122,8 +137,8 @@ class RealTimeAnomalyDetector:
             double rpm;
         }
         """
-        struct_format = '=7d'  # 7개의 double 값
-        struct_size = struct.calcsize(struct_format)
+        struct_format = STRUCT_FORMAT  # 7개의 double 값
+        struct_size = STRUCT_SIZE
         
         data = self.sensor_socket.recv(struct_size)
         if len(data) != struct_size:
@@ -158,14 +173,15 @@ class RealTimeAnomalyDetector:
             # 데이터 정규화
             sequence_normalized = self.scaler.transform(sequence)
             
-            # 모델 입력을 위해 배치 차원 추가
-            sequence_batch = np.expand_dims(sequence_normalized, axis=0)
+            # PyTorch 텐서로 변환하고 배치 차원 추가
+            sequence_tensor = torch.FloatTensor(sequence_normalized).unsqueeze(0).to(self.device)
             
-            # 시퀀스 복원
-            reconstructed_sequence = self.model.predict(sequence_batch, verbose=0)
+            # 시퀀스 복원 (PyTorch 모델 사용)
+            with torch.no_grad():
+                reconstructed_sequence = self.model(sequence_tensor)
             
             # 재구성 오차 계산
-            mse = np.mean(np.power(sequence_batch - reconstructed_sequence, 2))
+            mse = torch.mean((sequence_tensor - reconstructed_sequence) ** 2).item()
             
             # 이상치 판단
             is_anomaly = mse > self.threshold
@@ -205,6 +221,7 @@ class RealTimeAnomalyDetector:
                 # 센서 데이터 수신
                 sensor_data = self.receive_sensor_data()
                 if not sensor_data:
+                    print('no data')
                     break
                 
                 # 데이터 처리 및 이상치 탐지
@@ -228,12 +245,12 @@ class RealTimeAnomalyDetector:
 def main():
     # 모델 및 스케일러 경로 설정
     rpm_type = 'rpm_600'  # 또는 'rpm_1200'
-    model_path = f"../models/{rpm_type}/vibration_model.h5"
-    scaler_path = f"../models/{rpm_type}/vibration_scaler.pkl"
+    model_path = f"../models/autoencoder.pth"
+    scaler_path = f"../models/scaler.joblib"
     
     # 서버 주소 설정
-    SENSOR_SERVER = ('localhost', 12345)  # 센서 데이터 서버 주소
-    RESULT_SERVER = ('localhost', 54321)  # 결과 전송 서버 주소
+    SENSOR_SERVER = (SERVER_IP, SERVER_PORT)  # 센서 데이터 서버 주소
+    RESULT_SERVER = (RESULT_IP, RESULT_PORT)  # 결과 전송 서버 주소
     
     # 탐지기 인스턴스 생성
     detector = RealTimeAnomalyDetector(
