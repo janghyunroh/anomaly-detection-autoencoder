@@ -1,6 +1,8 @@
-# models
+# models and scaler
 *.h5
 *.pkl
+*.pth
+*.joblib
 
 # datas
 *.csv
