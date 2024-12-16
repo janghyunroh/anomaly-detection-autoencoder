@@ -1,5 +1,48 @@
 # utils/config.py
 CONFIG = {
+
+    'models' : {
+        'vibration' : {
+            'lookback' : 5,
+            'model_path' : '../models/vib_5.pth',
+            'scaler_path' : '../models/scaler_vib_5.joblib',
+            'threshold' : 0.5,
+            # 0.1275
+            # 0.8
+            # 0.9
+            'normal_data_path' : '../datas/normal/vib',
+            'abnormal_data_path' : '../datas/abnormal/vib'
+        },
+        'voltage' : {
+            'lookback' : 5,
+            'model_path' : '../models/volt_5.pth',
+            'scaler_path' : '../models/scaler_volt_5.joblib',
+            'threshold' : 0.5,
+            'normal_data_path' : '../datas/normal/volt',
+            'abnormal_data_path' : '../datas/abnormal/volt'
+        },
+        'temperature' : {
+            'lookback' : 5,
+            'model_path' : '../models/temp_5.pth',
+            'scaler_path' : '../models/scaler_temp_5.joblib',
+            'threshold' : 0.1408,
+            'normal_data_path' : '../datas/normal/temp',
+            'abnormal_data_path' : '../datas/abnormal/temp'
+        }
+    },
+
+    'training' : {
+        'epochs' : 10,
+        'batch_size' : 32,
+        'validation_split' : 0.1,
+        'learning_rate' : 1e-3,
+        'patience' : 10
+    },
+
+
+
+
+
     'rpm_600' : {
         'raw_data_dir' : '../datas/raw/rpm_600',
         'raw_data_train_dir': '../datas/raw/rpm_600/train',
@@ -14,7 +57,10 @@ CONFIG = {
         'sequence_length': 100,
         'data_period_ms': 50,
         'train_test_split': 0.9,
-        'anomaly_threshold': 0.1,
+        'anomaly_threshold': 0.1408,
+        # 0.0413
+        # 0.8
+        #0.9209
         'results_dir' : '../results/rpm_600',
         'log_dir' : '../logs/rpm_600'
     },
@@ -33,7 +79,7 @@ CONFIG = {
         'sequence_length': 250,
         'data_period_ms': 20,
         'train_test_split': 0.9,
-        'anomaly_threshold': 0.1,
+        'anomaly_threshold': 0.9209,
         'results_dir' : '../results/rpm_1200',
         'log_dir' : '../logs/rpm_1200'
     },
@@ -43,11 +89,7 @@ CONFIG = {
 
     'model_type' : ['vibration', 'voltage', 'rpm', 'temperature', 'multi-feature'],
     
-    'training' : {
-        'epochs' : 10,
-        'batch_size' : 32,
-        'validation_split' : 0.1,
-    }
+    
 }
 
 REQUIRED_FEATURES = {

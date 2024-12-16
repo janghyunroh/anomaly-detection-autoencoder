@@ -60,5 +60,9 @@ class LSTMAutoencoder(nn.Module):
     
     def get_reconstruction_error(self, x):
         """입력 데이터의 재구성 오차를 계산"""
+        #x_reconst = self.forward(x)
+        #relative_error = torch.abs(x - x_reconst) / (torch.abs(x) + 1e-6)
+        #return torch.mean(relative_error, dim=(1, 2))
+        
         x_reconst = self.forward(x)
         return torch.mean((x - x_reconst) ** 2, dim=(1, 2))
